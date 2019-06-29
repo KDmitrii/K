@@ -1,0 +1,159 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta http-equiv="X-UA-Compatible" content="ie=edge">
+    <title>Task</title>
+</head>
+
+<body>
+    <main>
+        <table id="table" border="1"></table>
+    </main>
+
+    <script src="./jquery.min.js"></script>
+    <script src="./Chart.min.js"></script>
+    <script>
+        $(document).ready(function () {
+            let arrHead = [];
+            $.ajax({
+                type: 'POST',
+                url: './data.json',
+                dataType: 'json',
+                success: function (data) {
+                    $('<tr>', { id: 'header' }).appendTo('#table');
+
+                    // Выполнение двойной проходки по массиву с данными
+                    for (let i = 0; i < 2; i++) {
+                        $.each(data, function (index, value) {
+                            // Создание строк с данными во вторую проходку по массиву
+                            if (i == 1) {
+                                $('<tr>', { id: 'id' + index }).appendTo('#table');
+                                for (let i = 0; i < arrHead.length; i++) {
+                                    $('<td>', { class: arrHead[i] }).appendTo('#id' + index);
+                                }
+                            }
+
+                            let path = [];
+                            $.each(value, function recursion(key, value) {
+                                path.push(key);
+                                $.each(value, function (key, value) {
+                                    if (value instanceof Object) {
+                                        recursion(key, value);
+                                    } else {
+                                        let headerKey = path.toString().replace(/,/ig, '-') + '-' + key;
+
+                                        // Создание столбцов в таблице с новыми значениями в 1ую проходку
+                                        if (i == 0) {
+                                            if ($('#' + headerKey).length == 0) {
+                                                arrHead.push(headerKey);
+                                                $('<th>', { id: headerKey, text: headerKey }).appendTo('#header');
+                                            }
+                                        }
+
+                                        // Запись данных в таблицу во 2ой проходке
+                                        if (i == 1) {
+                                            $('#id' + index + ' ' + '.' + headerKey).text(value);
+                                        }
+                                    }
+                                });
+                                path.pop();
+                            });
+                        });
+                    }
+                }
+            });
+
+            // Доп. задания
+            $(document).ajaxComplete(function () {
+                // Список проектов
+                $('<section>', { id: 'additionalSec' }).css({ display: 'block' }).insertBefore('#table');
+                $('<div>', { id: 'gamesListDiv', width: '200' }).appendTo('#additionalSec');
+                $('#gamesListDiv').css({ display: 'inline-block', marginTop: '0' });
+                $('<table>', { id: 'gamesList', text: 'Список всех проектов', border: '1px', width: '200' }).appendTo('#gamesListDiv');
+                $('<hr>').appendTo('#gamesList');
+                let arrList = {};
+
+                $.each($('.transaction-project-name'), function (index, val) {
+                    arrList[($(val).text())] = true;
+                });
+
+                for (let i = 0; i < Object.keys(arrList).length; i++) {
+                    $('<tr>', { text: Object.keys(arrList)[i] }).appendTo('#gamesList');
+                }
+
+                // Фильтр на все столбцы
+                $('<tr>', { id: 'filter' }).insertBefore('#header');
+                $.each($('th'), function (key, value) {
+                    $('<td>', { id: 'colFilter' + key }).appendTo('#filter');
+                    $('<input>', { id: 'input' + key, type: 'text', placeholder: 'Введите текст фильтра' }).appendTo('#colFilter' + key).on('input', function (event) {
+
+                        let val = "." + $(value).text() + ":contains('" + $('#input' + key).val() + "')";
+                        console.log(val);
+                        $('tr:has(".' + $(value).text() + '")').not('tr:has("' + val + '")').css('display', 'none');
+                        $('tr:has(".' + $(value).text() + '")').filter('tr:has("' + val + '")').css('display', 'table-row');
+                    });
+                });
+
+                // Рейтинг популярности платежных систем
+                $('<div>', { id: 'rankListDiv', width: '200' }).appendTo('#additionalSec');
+                $('#rankListDiv').css({ display: 'inline-block', marginTop: '0' });
+                $('<table>', { id: 'ranking', border: 1, text: 'Рейтинг популярности платежных систем' }).appendTo('#rankListDiv');
+                let ranking = {};
+                $.each($('.transaction-payment_method-name'), function (key, value) {
+                    let replaceThis = $(value).text().replace(/\W/ig, '-');
+                    if (ranking[$(value).text()] == undefined) {
+                        ranking[$(value).text()] = 1;
+                        $('<tr>', { id: 'r' + replaceThis }).appendTo('#ranking');
+                        $('<td>', { class: 'name' + replaceThis, text: $(value).text() }).appendTo('#r' + replaceThis);
+                        $('<td>', { class: 'rank' + replaceThis, text: ranking[$(value).text()] }).appendTo('#r' + replaceThis);
+                    } else {
+                        ranking[$(value).text()] = ranking[$(value).text()] + 1;
+                        $('#r' + replaceThis + ' ' + '.rank' + replaceThis).text(ranking[$(value).text()]);
+                    }
+                });
+
+
+                // График популярности платежных систем
+                let rankingvalues = [];
+                let colors = [];
+                for (let i = 0; i < Object.keys(ranking).length; i++) {
+                    rankingvalues.push(ranking[Object.keys(ranking)[i]]);
+                    colors.push('rgba(' + Math.floor(Math.random() * (256)) + ',' + Math.floor(Math.random() * (256)) + ',' + Math.floor(Math.random() * (256)) + ',1)');
+                }
+
+                $('<div>', { id: 'graphDiv' }).appendTo('#additionalSec');
+                $('#graphDiv').css({ display: 'inline-block', marginTop: '0' });
+                $('<canvas>', { id: 'chart', width: '400', height: '400' }).appendTo('#graphDiv');
+                let ctx = $('#chart');
+
+                let chart = new Chart(ctx, {
+                    type: 'pie',
+                    data: {
+                        labels: Object.keys(ranking),
+                        datasets: [{
+                            label: 'Кол-во операций',
+                            data: rankingvalues,
+                            backgroundColor: colors
+                        }]
+                    },
+                    options: {
+                        responsive: false,
+                        scales: {
+                            yAxes: [{
+                                ticks: {
+                                    beginAtZero: true
+                                }
+                            }]
+                        }
+                    }
+                });
+            });
+        });
+
+    </script>
+</body>
+
+</html>
