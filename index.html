@@ -89,9 +89,7 @@
                 $.each($('th'), function (key, value) {
                     $('<td>', { id: 'colFilter' + key }).appendTo('#filter');
                     $('<input>', { id: 'input' + key, type: 'text', placeholder: 'Введите текст фильтра' }).appendTo('#colFilter' + key).on('input', function (event) {
-
-                        let val = "." + $(value).text() + ":contains('" + $('#input' + key).val() + "')";
-                        console.log(val);
+                        let val = "." + $(value).text() + ":contains('" + $('#input' + key).val() + "')";                        
                         $('tr:has(".' + $(value).text() + '")').not('tr:has("' + val + '")').css('display', 'none');
                         $('tr:has(".' + $(value).text() + '")').filter('tr:has("' + val + '")').css('display', 'table-row');
                     });
