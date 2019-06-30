@@ -86,12 +86,44 @@
 
                 // Фильтр на все столбцы
                 $('<tr>', { id: 'filter' }).insertBefore('#header');
+                let th = [];
                 $.each($('th'), function (key, value) {
+                    th.push($(value).text());
                     $('<td>', { id: 'colFilter' + key }).appendTo('#filter');
                     $('<input>', { id: 'input' + key, type: 'text', placeholder: 'Введите текст фильтра' }).appendTo('#colFilter' + key).on('input', function (event) {
-                        let val = "." + $(value).text() + ":contains('" + $('#input' + key).val() + "')";                        
-                        $('tr:has(".' + $(value).text() + '")').not('tr:has("' + val + '")').css('display', 'none');
-                        $('tr:has(".' + $(value).text() + '")').filter('tr:has("' + val + '")').css('display', 'table-row');
+                        let arr = [];
+                        $.each($('input'), function (keyInput, valInput) {
+                            if ($(valInput)[0].value !== "") {
+                                arr.push($('tr:has(.' + th[keyInput] + ":contains('" + $(valInput)[0].value + "'))"));
+                            }
+                        });
+
+                        if (arr.length == 0) {
+                            $('#table tr').not('#filter').not('#header').css('display', 'table-row');
+                        } if (arr.length == 1) {
+                            $('#table tr').not('#filter').not('#header').css('display', 'none');
+                            $(arr[0]).not('#filter').not('#header').css('display', 'table-row');
+                        } if (arr.length > 1) {
+                            $('#table tr').not('#filter').not('#header').css('display', 'none');
+                            let onDisplay = [];
+                            for (let i = 1; i < arr.length; i++) {
+                                if (i == 1) {
+                                    onDisplay = arr[0];
+                                }
+                                let forHelp = [];
+
+                                for (let j = 0; j < arr[i].length; j++) {
+                                    for (let k = 0; k < onDisplay.length; k++) {
+                                        if (onDisplay[k].id == arr[i][j].id) {
+                                            forHelp.push(onDisplay[k]);
+                                            break;
+                                        }
+                                    }
+                                }
+                                onDisplay = forHelp;
+                            }
+                            $(onDisplay).not('#filter').not('#header').css('display', 'table-row');
+                        }
                     });
                 });
 
